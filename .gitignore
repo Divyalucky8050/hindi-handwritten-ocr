@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.bak
+outputs/
+*.pt
+*.pth
+*.bin
+*.safetensors
+data/raw/
+*.zip
+.venv/

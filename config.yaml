@@ -1,0 +1,58 @@
+# Configuration for the Hindi handwriting OCR pipeline.
+# Every script reads this file; avoid hard-coding paths elsewhere.
+
+data:
+  raw_dir: data/raw/IIIT-HW-Hindi_v1
+  processed_dir: data/processed
+  lexicon_dir: data/lexicon
+
+model:
+  backbone: microsoft/trocr-base-handwritten
+  max_target_length: 18                # from data/processed/stats.json p99
+  freeze_encoder_layers: 0             # raise to 6 if you hit OOM on a small GPU
+
+train:
+  output_dir: outputs/checkpoints
+  epochs: 12
+  batch_size: 24                       # ~22 GB at 384x384 on fp16; see README table
+  eval_batch_size: 48
+  grad_accum: 2                        # effective batch 48
+  lr: 5.0e-5                           # TrOCR fine-tuning is sensitive; 1e-4 diverges
+  weight_decay: 0.01
+  warmup_ratio: 0.05
+  scheduler: cosine
+  fp16: true
+  bf16: false                          # prefer bf16 on A100/H100/4090: set true, fp16 false
+  gradient_checkpointing: false
+  num_workers: 8
+  augment_prob: 0.5
+  val_subset: 2000                     # generative eval is slow; 0 = full val set
+  patience: 3
+  logging_steps: 100
+  save_total_limit: 2
+  seed: 42
+  report_to: ["none"]
+
+uncertainty:
+  mc_passes: 5
+  low_confidence_token: 0.60
+
+detection:
+  model: rf
+  beta: 2.0
+  calibrate: true
+
+correction:
+  max_edit_distance: 2
+  max_candidates: 12
+  accept_margin: 0.5
+  weights:
+    lm: 1.0
+    distance: 1.2
+    visual: 1.5
+    frequency: 0.3
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  max_upload_mb: 10

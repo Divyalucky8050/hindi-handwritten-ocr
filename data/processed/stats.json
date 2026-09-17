@@ -1,0 +1,16 @@
+{
+  "splits": {
+    "train": 69853,
+    "val": 12708,
+    "test": 12869
+  },
+  "unique_train_labels": 9495,
+  "charset_size": 101,
+  "akshara_len": {
+    "min": 1,
+    "max": 16,
+    "mean": 3.3,
+    "p99": 7
+  },
+  "chars_in_eval_not_in_train": {}
+}

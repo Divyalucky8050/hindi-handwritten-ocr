@@ -1,0 +1,1999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>OCR for Handwritten Hindi Text</title>
+
+    <style>
+        /* =========================================================
+           RESET
+        ========================================================= */
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            font-family:
+                "Segoe UI",
+                "Noto Sans",
+                Arial,
+                sans-serif;
+
+            background:
+                radial-gradient(
+                    circle at top left,
+                    #172033 0%,
+                    #0d1119 38%,
+                    #080b11 100%
+                );
+
+            color: #f4f7fb;
+        }
+
+        button,
+        input {
+            font: inherit;
+        }
+
+
+        /* =========================================================
+           MAIN APP
+        ========================================================= */
+
+        .app {
+            width: 100%;
+            height: 100vh;
+
+            display: flex;
+            flex-direction: column;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================================
+           TOP TITLE
+        ========================================================= */
+
+        .topbar {
+            height: 72px;
+            min-height: 72px;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 30px;
+
+            border-bottom: 1px solid #263143;
+
+            background: rgba(8, 11, 17, 0.92);
+
+            backdrop-filter: blur(10px);
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: 500;
+            letter-spacing: -0.3px;
+
+            color: #ffffff;
+        }
+
+
+        /* =========================================================
+           MAIN CONTENT
+        ========================================================= */
+
+        .main {
+            flex: 1;
+
+            min-height: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            padding: 14px 18px 10px;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================================
+           THREE COLUMNS
+        ========================================================= */
+
+        .columns {
+            flex: 1;
+            min-height: 0;
+
+            display: grid;
+
+            /*
+                LEFT  = slightly larger
+                MIDDLE = slightly smaller
+                RIGHT = accuracy list
+            */
+            grid-template-columns:
+                1.12fr
+                0.92fr
+                0.96fr;
+
+            gap: 14px;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================================
+           CARD
+        ========================================================= */
+
+        .card {
+            min-width: 0;
+            min-height: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            background:
+                linear-gradient(
+                    145deg,
+                    #141b27 0%,
+                    #0f151f 100%
+                );
+
+            border: 1px solid #293548;
+
+            border-radius: 14px;
+
+            box-shadow:
+                0 10px 30px rgba(0, 0, 0, 0.20);
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================================
+           CARD HEADER
+        ========================================================= */
+
+        .card-header {
+            height: 52px;
+            min-height: 52px;
+
+            display: flex;
+            align-items: center;
+
+            padding: 0 18px;
+
+            border-bottom: 1px solid #293548;
+
+            color: #f5f7fa;
+
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .card-header::before {
+            content: "";
+
+            width: 7px;
+            height: 7px;
+
+            margin-right: 10px;
+
+            border-radius: 50%;
+
+            background: #65e6c1;
+
+            box-shadow:
+                0 0 10px rgba(101, 230, 193, 0.45);
+        }
+
+
+        /* =========================================================
+           LEFT COLUMN
+        ========================================================= */
+
+        .left-content {
+            flex: 1;
+            min-height: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            padding: 14px;
+
+            overflow: hidden;
+        }
+
+
+        /* =========================================================
+           IMAGE UPLOAD
+        ========================================================= */
+
+        .upload-zone {
+            position: relative;
+
+            height: 43%;
+            min-height: 190px;
+
+            border: 1px dashed #46546a;
+
+            border-radius: 11px;
+
+            background: #0b1018;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            cursor: pointer;
+
+            overflow: hidden;
+
+            transition:
+                border-color 0.2s ease,
+                background 0.2s ease;
+        }
+
+        .upload-zone:hover {
+            border-color: #65e6c1;
+            background: #0d141e;
+        }
+
+        .upload-zone.has-image {
+            cursor: default;
+            border-style: solid;
+        }
+
+        .upload-placeholder {
+            text-align: center;
+            color: #8d9bb0;
+        }
+
+        .upload-plus {
+            width: 42px;
+            height: 42px;
+
+            margin: 0 auto 10px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 1px solid #3c485a;
+
+            border-radius: 10px;
+
+            color: #65e6c1;
+
+            font-size: 25px;
+            font-weight: 300;
+        }
+
+        .upload-title {
+            color: #e9edf3;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .upload-subtitle {
+            color: #78869a;
+            font-size: 12px;
+        }
+
+        #file {
+            display: none;
+        }
+
+        .preview {
+            display: none;
+
+            width: 100%;
+            height: 100%;
+
+            object-fit: contain;
+
+            background: #ffffff;
+        }
+
+
+        /* =========================================================
+           INSTRUCTIONS
+        ========================================================= */
+
+        .instructions {
+            margin-top: 10px;
+
+            padding: 11px 13px;
+
+            border-radius: 10px;
+
+            background: #0b1018;
+
+            border: 1px solid #293548;
+
+            overflow: hidden;
+        }
+
+        .instructions-title {
+            margin-bottom: 6px;
+
+            color: #ffffff;
+
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .instructions ul {
+            margin: 0;
+            padding-left: 18px;
+
+            color: #a9b5c5;
+
+            font-size: 11px;
+
+            line-height: 1.45;
+        }
+
+        .instructions li {
+            margin-bottom: 2px;
+        }
+
+        .warning {
+            margin-top: 7px;
+
+            padding: 7px 9px;
+
+            border-radius: 7px;
+
+            background: #17150f;
+
+            border: 1px solid #4b4026;
+
+            color: #d9b96b;
+
+            font-size: 10px;
+
+            line-height: 1.35;
+        }
+
+
+        /* =========================================================
+           BUTTONS
+        ========================================================= */
+
+        .actions {
+            display: flex;
+
+            gap: 8px;
+
+            margin-top: 10px;
+        }
+
+        .primary,
+        .secondary {
+            height: 38px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-size: 13px;
+
+            transition:
+                background 0.2s ease,
+                border-color 0.2s ease;
+        }
+
+        .primary {
+            flex: 1;
+
+            border: 1px solid #65e6c1;
+
+            background: #65e6c1;
+
+            color: #08110f;
+
+            font-weight: 500;
+        }
+
+        .primary:hover:not(:disabled) {
+            background: #7aefd0;
+        }
+
+        .primary:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .secondary {
+            width: 78px;
+
+            border: 1px solid #3b485c;
+
+            background: #151c27;
+
+            color: #d9e0e9;
+        }
+
+        .secondary:hover:not(:disabled) {
+            border-color: #65758b;
+        }
+
+        .secondary:disabled {
+            opacity: 0.5;
+        }
+
+
+        /* =========================================================
+           STATUS
+        ========================================================= */
+
+        .status {
+            min-height: 18px;
+
+            margin-top: 5px;
+
+            text-align: center;
+
+            color: #7f8da2;
+
+            font-size: 10px;
+        }
+
+        .loading {
+            display: none;
+
+            margin-top: 5px;
+
+            text-align: center;
+
+            color: #65e6c1;
+
+            font-size: 11px;
+        }
+
+        .error {
+            display: none;
+
+            margin-top: 5px;
+
+            padding: 7px;
+
+            border-radius: 7px;
+
+            background: #241315;
+
+            border: 1px solid #5a2b31;
+
+            color: #f19aa4;
+
+            font-size: 10px;
+        }
+
+
+        /* =========================================================
+           MIDDLE COLUMN
+        ========================================================= */
+
+        .result-content {
+            flex: 1;
+            min-height: 0;
+
+            display: flex;
+            flex-direction: column;
+
+            align-items: center;
+            justify-content: center;
+
+            padding: 25px;
+
+            text-align: center;
+
+            overflow: hidden;
+        }
+
+        .result-label {
+            margin-bottom: 16px;
+
+            color: #738198;
+
+            font-size: 10px;
+
+            letter-spacing: 1.8px;
+
+            text-transform: uppercase;
+        }
+
+        /*
+            IMPORTANT:
+            Word is deliberately NOT bold.
+        */
+
+        .result-text {
+            width: 100%;
+
+            min-height: 65px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #ffffff;
+
+            font-family:
+                "Noto Sans Devanagari",
+                "Nirmala UI",
+                "Mangal",
+                sans-serif;
+
+            font-size: clamp(28px, 3vw, 40px);
+
+            font-weight: 400;
+
+            line-height: 1.35;
+
+            word-break: break-word;
+        }
+
+
+        /* =========================================================
+           WORD ACCURACY
+        ========================================================= */
+
+        .accuracy-box {
+            width: min(310px, 90%);
+
+            margin-top: 28px;
+        }
+
+        .accuracy-row {
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            margin-bottom: 7px;
+
+            color: #8997aa;
+
+            font-size: 12px;
+        }
+
+        /*
+            Accuracy score deliberately NOT bold.
+        */
+
+        .accuracy-value {
+            color: #dce4ed;
+
+            font-size: 12px;
+
+            font-weight: 400;
+        }
+
+        .progress {
+            width: 100%;
+            height: 5px;
+
+            overflow: hidden;
+
+            border-radius: 999px;
+
+            background: #293343;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+
+            border-radius: 999px;
+
+            background: #65e6c1;
+
+            transition: width 0.35s ease;
+        }
+
+        /* =========================================================
+           WORD DETAILS
+        ========================================================= */
+
+        .word-details {
+            width: min(360px, 94%);
+            margin-top: 18px;
+            padding: 14px 16px;
+            border: 1px solid #293343;
+            border-radius: 10px;
+            background: #151c27;
+            text-align: left;
+        }
+
+        .detail-title {
+            margin-bottom: 7px;
+            color: #738198;
+            font-size: 9px;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            min-height: 25px;
+            color: #8997aa;
+            font-size: 11px;
+        }
+
+        .detail-row span:last-child {
+            color: #dce4ed;
+            text-align: right;
+        }
+
+        .bbox-value {
+            font-family: monospace;
+            font-size: 10px;
+        }
+
+
+        .result-note {
+            margin-top: 14px;
+
+            color: #69778b;
+
+            font-size: 10px;
+        }
+
+
+        /* =========================================================
+           RIGHT COLUMN
+        ========================================================= */
+
+        .character-content {
+            flex: 1;
+            min-height: 0;
+
+            padding: 14px 17px;
+
+            overflow-y: auto;
+
+            scrollbar-width: thin;
+            scrollbar-color: #3b4758 transparent;
+        }
+
+        .character-content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .character-content::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .character-content::-webkit-scrollbar-thumb {
+            background: #3b4758;
+            border-radius: 999px;
+        }
+
+
+        /*
+            ONE CHARACTER PER LINE
+
+            Example:
+
+            अ                         88.35%
+            ं                         91.20%
+            त                         87.42%
+            र                         92.11%
+        */
+
+        .char-row {
+            min-height: 42px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 4px;
+
+            border-bottom: 1px solid #202a38;
+        }
+
+        .char-row:last-child {
+            border-bottom: none;
+        }
+
+        .char-glyph {
+            color: #ffffff;
+
+            font-family:
+                "Noto Sans Devanagari",
+                "Nirmala UI",
+                "Mangal",
+                sans-serif;
+
+            font-size: 21px;
+
+            font-weight: 400;
+        }
+
+        .char-score {
+            color: #65e6c1;
+
+            font-size: 12px;
+
+            font-weight: 400;
+        }
+
+        .empty {
+            height: 100%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            text-align: center;
+
+            color: #718096;
+
+            font-size: 12px;
+
+            line-height: 1.6;
+        }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        .footer {
+            flex: 0 0 34px;
+
+            margin-top: 8px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 1px solid #293548;
+
+            border-radius: 9px;
+
+            background: #0d131c;
+
+            color: #8190a5;
+
+            font-size: 12px;
+
+            text-align: center;
+        }
+
+        .footer strong {
+            color: #dce3eb;
+
+            font-weight: 400;
+        }
+
+
+        /* =========================================================
+           SMALL SCREENS
+        ========================================================= */
+
+        @media (max-width: 1050px) {
+
+            .topbar {
+                padding: 0 20px;
+            }
+
+            .main {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .columns {
+                grid-template-columns:
+                    1.05fr
+                    0.95fr
+                    0.95fr;
+
+                gap: 10px;
+            }
+
+            .result-text {
+                font-size: 30px;
+            }
+
+            .instructions ul {
+                font-size: 10px;
+            }
+        }
+
+
+        /* =========================================================
+           VERY SMALL HEIGHT
+        ========================================================= */
+
+        @media (max-height: 700px) {
+
+            .topbar {
+                height: 58px;
+                min-height: 58px;
+            }
+
+            .main {
+                padding-top: 8px;
+                padding-bottom: 7px;
+            }
+
+            .card-header {
+                height: 46px;
+                min-height: 46px;
+            }
+
+            .upload-zone {
+                min-height: 145px;
+            }
+
+            .instructions {
+                padding: 8px 10px;
+            }
+
+            .instructions ul {
+                font-size: 9px;
+            }
+
+            .warning {
+                font-size: 9px;
+            }
+
+            .result-text {
+                font-size: 27px;
+            }
+
+            .accuracy-box {
+                margin-top: 18px;
+            }
+
+            .char-row {
+                min-height: 35px;
+            }
+
+            .char-glyph {
+                font-size: 18px;
+            }
+
+            .footer {
+                flex-basis: 30px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+
+
+<body>
+
+<div class="app">
+
+    <!-- =========================================================
+         TOP
+    ========================================================== -->
+
+    <header class="topbar">
+        <div class="title">
+            OCR for Handwritten Hindi Text
+        </div>
+    </header>
+
+
+    <!-- =========================================================
+         MAIN
+    ========================================================== -->
+
+    <main class="main">
+
+        <section class="columns">
+
+
+            <!-- =================================================
+                 LEFT: INPUT
+            ================================================== -->
+
+            <section class="card">
+
+                <div class="card-header">
+                    Input Image
+                </div>
+
+                <div class="left-content">
+
+                    <label
+                        class="upload-zone"
+                        id="uploadZone"
+                        for="file"
+                    >
+
+                        <div
+                            class="upload-placeholder"
+                            id="uploadPlaceholder"
+                        >
+                            <div class="upload-plus">
+                                +
+                            </div>
+
+                            <div class="upload-title">
+                                Choose handwritten Hindi image
+                            </div>
+
+                            <div class="upload-subtitle">
+                                PNG, JPG or JPEG
+                            </div>
+                        </div>
+
+                        <img
+                            id="preview"
+                            class="preview"
+                            alt="Selected handwritten Hindi image"
+                        >
+
+                    </label>
+
+
+                    <input
+                        type="file"
+                        id="file"
+                        accept="image/png,image/jpeg,image/jpg"
+                    >
+
+
+                    <!-- INSTRUCTIONS -->
+
+                    <div class="instructions">
+
+                        <div class="instructions-title">
+                            Image Instructions
+                        </div>
+
+                        <ul>
+                            <li>
+                                Use white or plain paper.
+                            </li>
+
+                            <li>
+                                No extra lines except the handwritten shirorekha.
+                            </li>
+
+                            <li>
+                                One page / one handwritten word at a time.
+                            </li>
+
+                            <li>
+                                Crop as tightly as possible around the handwriting.
+                            </li>
+
+                            <li>
+                                Use clear and evenly lit images.
+                            </li>
+
+                            <li>
+                                Avoid shadows, blur and strong perspective.
+                            </li>
+                        </ul>
+
+                        <div class="warning">
+                            Recognition accuracy may drop significantly
+                            if these conditions are not followed.
+                            Sorry — these are current system limitations.
+                        </div>
+
+                    </div>
+
+
+                    <!-- BUTTONS -->
+
+                    <div class="actions">
+
+                        <button
+                            class="primary"
+                            id="recognize"
+                            disabled
+                        >
+                            Recognize Text
+                        </button>
+
+                        <button
+                            class="secondary"
+                            id="reset"
+                        >
+                            Reset
+                        </button>
+
+                    </div>
+
+
+                    <div
+                        class="loading"
+                        id="loading"
+                    >
+                        Recognizing handwritten Hindi...
+                    </div>
+
+                    <div
+                        class="status"
+                        id="fileStatus"
+                    ></div>
+
+                    <div
+                        class="error"
+                        id="error"
+                    ></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 MIDDLE: RESULT
+            ================================================== -->
+
+            <section class="card">
+
+                <div class="card-header">
+                    Recognition Result
+                </div>
+
+                <div class="result-content">
+
+                    <div class="result-label">
+                        Recognised Word
+                    </div>
+
+
+                    <!--
+                        NOT BOLD
+                        SMALLER SIZE
+                    -->
+
+                    <div
+                        class="result-text"
+                        id="resultText"
+                    >
+                        —
+                    </div>
+
+
+                    <div class="accuracy-box">
+
+                        <div class="accuracy-row">
+
+                            <span>
+                                Accuracy
+                            </span>
+
+                            <span
+                                class="accuracy-value"
+                                id="accuracyValue"
+                            >
+                                —
+                            </span>
+
+                        </div>
+
+
+                        <div class="progress">
+
+                            <div
+                                class="progress-bar"
+                                id="progressBar"
+                            ></div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="word-details"
+                        id="wordDetails"
+                    >
+                        <div class="detail-title">Word Details</div>
+
+                        <div class="detail-row">
+                            <span>Detection Accuracy</span>
+                            <span id="detectionAccuracy">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Recognition Accuracy</span>
+                            <span id="recognitionAccuracy">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Word Length</span>
+                            <span id="wordLength">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Character Count</span>
+                            <span id="characterCount">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Line Number</span>
+                            <span id="lineNumber">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Word Number</span>
+                            <span id="wordNumber">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Bounding Box</span>
+                            <span class="bbox-value" id="boundingBox">—</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span>Processing Time</span>
+                            <span id="processingTime">—</span>
+                        </div>
+                    </div>
+
+
+                    <div
+                        class="result-note"
+                        id="resultNote"
+                    >
+                        Upload an image to start recognition.
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 RIGHT: CHARACTER ACCURACY
+            ================================================== -->
+
+            <section class="card">
+
+                <div class="card-header">
+                    Character Accuracy
+                </div>
+
+                <div
+                    class="character-content"
+                    id="characterContent"
+                >
+
+                    <div class="empty">
+                        Character accuracy will appear here
+                        after recognition.
+                    </div>
+
+                </div>
+
+            </section>
+
+        </section>
+
+
+        <!-- =====================================================
+             BOTTOM
+        ====================================================== -->
+
+        <div class="footer">
+
+            <strong>
+                OCR can make mistakes.
+            </strong>
+
+            &nbsp;
+
+            Accuracy shown here is the model's recognition score
+            and should not be interpreted as ground-truth accuracy.
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<script>
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    const fileInput =
+        document.getElementById("file");
+
+    const uploadZone =
+        document.getElementById("uploadZone");
+
+    const uploadPlaceholder =
+        document.getElementById("uploadPlaceholder");
+
+    const preview =
+        document.getElementById("preview");
+
+    const recognizeButton =
+        document.getElementById("recognize");
+
+    const resetButton =
+        document.getElementById("reset");
+
+    const loading =
+        document.getElementById("loading");
+
+    const fileStatus =
+        document.getElementById("fileStatus");
+
+    const errorBox =
+        document.getElementById("error");
+
+    const resultText =
+        document.getElementById("resultText");
+
+    const accuracyValue =
+        document.getElementById("accuracyValue");
+
+    const progressBar =
+        document.getElementById("progressBar");
+
+    const detectionAccuracy =
+        document.getElementById("detectionAccuracy");
+
+    const recognitionAccuracy =
+        document.getElementById("recognitionAccuracy");
+
+    const wordLength =
+        document.getElementById("wordLength");
+
+    const characterCount =
+        document.getElementById("characterCount");
+
+    const lineNumber =
+        document.getElementById("lineNumber");
+
+    const wordNumber =
+        document.getElementById("wordNumber");
+
+    const boundingBox =
+        document.getElementById("boundingBox");
+
+    const processingTime =
+        document.getElementById("processingTime");
+
+    const resultNote =
+        document.getElementById("resultNote");
+
+    const characterContent =
+        document.getElementById("characterContent");
+
+
+    let selectedFile = null;
+
+
+    /* =========================================================
+       FILE SELECTION
+    ========================================================= */
+
+    fileInput.addEventListener(
+        "change",
+        function () {
+
+            if (
+                fileInput.files &&
+                fileInput.files.length > 0
+            ) {
+
+                selectFile(
+                    fileInput.files[0]
+                );
+
+            }
+
+        }
+    );
+
+
+    function selectFile(file) {
+
+        if (!file.type.startsWith("image/")) {
+
+            showError(
+                "Please select an image file."
+            );
+
+            return;
+        }
+
+
+        selectedFile = file;
+
+
+        errorBox.style.display = "none";
+
+
+        fileStatus.textContent =
+            file.name;
+
+
+        recognizeButton.disabled =
+            false;
+
+
+        preview.src =
+            URL.createObjectURL(file);
+
+
+        preview.style.display =
+            "block";
+
+
+        uploadPlaceholder.style.display =
+            "none";
+
+
+        uploadZone.classList.add(
+            "has-image"
+        );
+
+
+        /* Reset result */
+
+        resultText.textContent =
+            "—";
+
+        accuracyValue.textContent =
+            "—";
+
+        progressBar.style.width =
+            "0%";
+
+        resultNote.textContent =
+            "Ready to recognize.";
+
+
+        characterContent.innerHTML = `
+            <div class="empty">
+                Character accuracy will appear here
+                after recognition.
+            </div>
+        `;
+    }
+
+
+    /* =========================================================
+       RECOGNIZE
+    ========================================================= */
+
+    recognizeButton.addEventListener(
+        "click",
+        recognize
+    );
+
+
+    async function recognize() {
+
+        if (!selectedFile) {
+            return;
+        }
+
+
+        recognizeButton.disabled =
+            true;
+
+        resetButton.disabled =
+            true;
+
+
+        loading.style.display =
+            "block";
+
+
+        errorBox.style.display =
+            "none";
+
+
+        resultNote.textContent =
+            "Running recognition...";
+
+
+        const formData =
+            new FormData();
+
+        formData.append(
+            "file",
+            selectedFile
+        );
+
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/recognize",
+                    {
+                        method: "POST",
+                        body: formData
+                    }
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.detail ||
+                    "Recognition failed."
+                );
+
+            }
+
+
+            /* =============================================
+               IMAGE REJECTED BY BACKEND
+            ============================================= */
+
+            if (data.rejected) {
+
+                const message =
+                    data.errors &&
+                    data.errors.length
+                        ? data.errors.join(" ")
+                        : "The image could not be processed.";
+
+                throw new Error(message);
+            }
+
+
+            /* =============================================
+               WORD
+            ============================================= */
+
+            const text =
+                data.text ||
+                "No text recognized.";
+
+
+            const word =
+                data.lines &&
+                data.lines[0] &&
+                data.lines[0].words
+                    ? data.lines[0].words[0]
+                    : null;
+
+
+            /* =============================================
+               WORD ACCURACY
+            ============================================= */
+
+            const rawAccuracy =
+                word &&
+                typeof word.accuracy === "number"
+                    ? word.accuracy
+                    : data.stats &&
+                      typeof data.stats.mean_accuracy === "number"
+                        ? data.stats.mean_accuracy
+                        : null;
+
+            let accuracy = null;
+
+            if (
+                rawAccuracy !== null &&
+                Number.isFinite(rawAccuracy)
+            ) {
+                accuracy =
+                    Math.max(
+                        0,
+                        Math.min(
+                            100,
+                            rawAccuracy * 100
+                        )
+                    );
+            }
+
+
+            /* =============================================
+               DISPLAY WORD
+            ============================================= */
+
+            resultText.textContent =
+                text;
+
+
+            if (accuracy !== null) {
+
+                accuracyValue.textContent =
+                    accuracy.toFixed(2) + "%";
+
+
+                progressBar.style.width =
+                    accuracy + "%";
+
+            } else {
+
+                accuracyValue.textContent =
+                    "N/A";
+
+                progressBar.style.width =
+                    "0%";
+            }
+
+
+            /* =============================================
+               RESULT STATUS
+            ============================================= */
+
+            if (
+                data.elapsed_s !== undefined &&
+                data.elapsed_s !== null
+            ) {
+
+                resultNote.textContent =
+                    "Recognition completed in " +
+                    data.elapsed_s +
+                    "s.";
+
+            } else {
+
+                resultNote.textContent =
+                    "Recognition completed.";
+
+            }
+
+
+            /* =============================================
+               WORD DETAILS
+            ============================================= */
+
+            if (word) {
+                const detection =
+                    typeof word.detection_accuracy === "number"
+                        ? word.detection_accuracy * 100
+                        : null;
+
+                const recognition =
+                    typeof word.recognition_accuracy === "number"
+                        ? word.recognition_accuracy * 100
+                        : accuracy;
+
+                detectionAccuracy.textContent =
+                    detection !== null
+                        ? detection.toFixed(2) + "%"
+                        : "N/A";
+
+                recognitionAccuracy.textContent =
+                    recognition !== null
+                        ? recognition.toFixed(2) + "%"
+                        : "N/A";
+
+                wordLength.textContent =
+                    (word.word_length ?? Array.from(text).length) +
+                    " characters";
+
+                characterCount.textContent =
+                    word.character_count ?? Array.from(text).length;
+
+                lineNumber.textContent =
+                    word.line_number ?? 1;
+
+                wordNumber.textContent =
+                    word.word_number ?? 1;
+
+                const box = word.box || word.bbox;
+
+                if (box) {
+                    boundingBox.textContent =
+                        "X: " + (box.x ?? 0) +
+                        ", Y: " + (box.y ?? 0) +
+                        ", W: " + (box.w ?? 0) +
+                        ", H: " + (box.h ?? 0);
+                } else {
+                    boundingBox.textContent = "N/A";
+                }
+            } else {
+                detectionAccuracy.textContent = "N/A";
+                recognitionAccuracy.textContent = "N/A";
+                wordLength.textContent = "N/A";
+                characterCount.textContent = "N/A";
+                lineNumber.textContent = "N/A";
+                wordNumber.textContent = "N/A";
+                boundingBox.textContent = "N/A";
+            }
+
+            processingTime.textContent =
+                data.elapsed_s !== undefined &&
+                data.elapsed_s !== null
+                    ? data.elapsed_s + " sec"
+                    : "N/A";
+
+
+            /* =============================================
+               CHARACTER ACCURACY
+            ============================================= */
+
+            renderCharacterAccuracy(
+                word
+            );
+
+        }
+
+
+        catch (error) {
+
+            showError(
+                error.message ||
+                "Could not recognize the image."
+            );
+
+
+            resultText.textContent =
+                "—";
+
+
+            accuracyValue.textContent =
+                "N/A";
+
+
+            progressBar.style.width =
+                "0%";
+
+            detectionAccuracy.textContent = "N/A";
+            recognitionAccuracy.textContent = "N/A";
+            wordLength.textContent = "N/A";
+            characterCount.textContent = "N/A";
+            lineNumber.textContent = "N/A";
+            wordNumber.textContent = "N/A";
+            boundingBox.textContent = "N/A";
+            processingTime.textContent = "N/A";
+
+
+            resultNote.textContent =
+                "Recognition failed.";
+
+
+            characterContent.innerHTML = `
+                <div class="empty">
+                    Character accuracy is unavailable.
+                </div>
+            `;
+
+        }
+
+
+        finally {
+
+            loading.style.display =
+                "none";
+
+
+            recognizeButton.disabled =
+                !selectedFile;
+
+
+            resetButton.disabled =
+                false;
+
+        }
+
+    }
+
+
+    /* =========================================================
+       CHARACTER ACCURACY
+
+       IMPORTANT:
+
+       Backend format is:
+
+       char_probs: [
+           ["अ", 0.8835],
+           ["ं", 0.9120],
+           ["त", 0.8742]
+       ]
+
+       NOT:
+
+       [0.8835, 0.9120, 0.8742]
+
+       This is the important fix.
+    ========================================================= */
+
+    function renderCharacterAccuracy(word) {
+
+        if (!word) {
+
+            characterContent.innerHTML = `
+                <div class="empty">
+                    Character accuracy is unavailable.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        const charProbs =
+            Array.isArray(word.char_probs)
+                ? word.char_probs
+                : [];
+
+
+        if (charProbs.length === 0) {
+
+            characterContent.innerHTML = `
+                <div class="empty">
+                    Character-level accuracy
+                    was not returned by the model.
+                </div>
+            `;
+
+            return;
+        }
+
+
+        characterContent.innerHTML =
+            "";
+
+
+        /*
+            Backend sends:
+
+            [
+                ["अ", 0.8835],
+                ["ं", 0.9120]
+            ]
+        */
+
+        charProbs.forEach(
+            function (entry) {
+
+                let character;
+                let probability;
+
+
+                /* -----------------------------------------
+                   Correct backend format
+                ----------------------------------------- */
+
+                if (
+                    Array.isArray(entry) &&
+                    entry.length >= 2
+                ) {
+
+                    character =
+                        entry[0];
+
+                    probability =
+                        Number(entry[1]);
+
+                }
+
+
+                /* -----------------------------------------
+                   Compatibility with old format
+                ----------------------------------------- */
+
+                else {
+
+                    character =
+                        String(entry);
+
+                    probability =
+                        NaN;
+                }
+
+
+                /* -----------------------------------------
+                   Validate probability
+                ----------------------------------------- */
+
+                let percentage;
+
+
+                if (
+                    Number.isFinite(probability)
+                ) {
+
+                    percentage =
+                        Math.max(
+                            0,
+                            Math.min(
+                                100,
+                                probability * 100
+                            )
+                        );
+
+                }
+
+
+                /* -----------------------------------------
+                   Create one-line row
+                ----------------------------------------- */
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                row.className =
+                    "char-row";
+
+
+                const glyph =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                glyph.className =
+                    "char-glyph";
+
+
+                glyph.textContent =
+                    character || "•";
+
+
+                const score =
+                    document.createElement(
+                        "span"
+                    );
+
+
+                score.className =
+                    "char-score";
+
+
+                if (
+                    percentage !== undefined
+                ) {
+
+                    score.textContent =
+                        percentage.toFixed(2) +
+                        "%";
+
+                } else {
+
+                    score.textContent =
+                        "N/A";
+                }
+
+
+                row.appendChild(
+                    glyph
+                );
+
+
+                row.appendChild(
+                    score
+                );
+
+
+                characterContent.appendChild(
+                    row
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =========================================================
+       ERROR
+    ========================================================= */
+
+    function showError(message) {
+
+        errorBox.textContent =
+            message;
+
+        errorBox.style.display =
+            "block";
+    }
+
+
+    /* =========================================================
+       RESET
+    ========================================================= */
+
+    resetButton.addEventListener(
+        "click",
+        function () {
+
+            selectedFile =
+                null;
+
+
+            fileInput.value =
+                "";
+
+
+            preview.src =
+                "";
+
+
+            preview.style.display =
+                "none";
+
+
+            uploadPlaceholder.style.display =
+                "block";
+
+
+            uploadZone.classList.remove(
+                "has-image"
+            );
+
+
+            recognizeButton.disabled =
+                true;
+
+
+            loading.style.display =
+                "none";
+
+
+            errorBox.style.display =
+                "none";
+
+
+            fileStatus.textContent =
+                "";
+
+
+            resultText.textContent =
+                "—";
+
+
+            accuracyValue.textContent =
+                "—";
+
+
+            progressBar.style.width =
+                "0%";
+
+
+            resultNote.textContent =
+                "Upload an image to start recognition.";
+
+
+            characterContent.innerHTML = `
+                <div class="empty">
+                    Character accuracy will appear here
+                    after recognition.
+                </div>
+            `;
+
+        }
+    );
+
+</script>
+
+</body>
+</html>

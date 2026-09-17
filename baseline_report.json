@@ -1,0 +1,86 @@
+{
+  "n": 12869,
+  "lexicon_size": 10972,
+  "recognition": {
+    "n": 12869,
+    "aer_corpus": 0.117,
+    "aer_mean_per_word": 0.1176,
+    "word_accuracy": 0.784,
+    "wer": 0.216
+  },
+  "final": {
+    "n": 12869,
+    "aer_corpus": 0.106,
+    "aer_mean_per_word": 0.1079,
+    "word_accuracy": 0.8287,
+    "wer": 0.1713
+  },
+  "correction": {
+    "word_accuracy_before": 0.784,
+    "word_accuracy_after": 0.8287,
+    "net_change": 0.0447,
+    "aer_before": 0.1176,
+    "aer_after": 0.1079,
+    "fixed": 575,
+    "damaged": 0,
+    "improved_not_fixed": 27,
+    "worsened_still_wrong": 186,
+    "unchanged": 11625,
+    "n_changed": 788,
+    "precision_of_changes": 0.7297,
+    "fix_damage_ratio": 575.0,
+    "examples_fixed": [
+      {
+        "truth": "उबालें",
+        "before": "उबालों",
+        "after": "उबालें"
+      },
+      {
+        "truth": "घडि़याल",
+        "before": "घडियाल",
+        "after": "घडि़याल"
+      },
+      {
+        "truth": "बि्रटिश",
+        "before": "छिराटिश",
+        "after": "बि्रटिश"
+      },
+      {
+        "truth": "संक्षेप",
+        "before": "सँक्षेप",
+        "after": "संक्षेप"
+      },
+      {
+        "truth": "जिंबाब्वे",
+        "before": "गिंबाब्वे",
+        "after": "जिंबाब्वे"
+      },
+      {
+        "truth": "फिनॉमिना",
+        "before": "पिनॉमिना",
+        "after": "फिनॉमिना"
+      },
+      {
+        "truth": "फिज़ाओं",
+        "before": "फ़िज़ाओं",
+        "after": "फिज़ाओं"
+      },
+      {
+        "truth": "जादुई।",
+        "before": "जादूई।",
+        "after": "जादुई।"
+      },
+      {
+        "truth": "दरख्तों",
+        "before": "दरभ्तों",
+        "after": "दरख्तों"
+      },
+      {
+        "truth": "अफ़सोस",
+        "before": "ॲप्रसोस",
+        "after": "अफ़सोस"
+      }
+    ],
+    "examples_damaged": []
+  }
+}
